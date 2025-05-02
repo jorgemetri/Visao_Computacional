@@ -1,4 +1,3 @@
-
 *Adapte a estrutura acima para refletir a organização real do seu repositório.*
 
 ## 📖 Conteúdo Principal
@@ -18,11 +17,30 @@ Nesta seção (geralmente na pasta `Resumos_Teoricos/`), você encontrará anota
 *   Aprendizado de Máquina e Deep Learning para VC (CNNs, etc.)
 *   Visão Estéreo e 3D
 *   (*Adicione outros tópicos cobertos*)
-Livros textos utilizados:
-![image](https://github.com/user-attachments/assets/98b71b64-544a-47a5-8de8-b11dc885f8e3)
-![image](https://github.com/user-attachments/assets/18541c49-386d-4547-a531-5388026e3298)
-![image](https://github.com/user-attachments/assets/d21e8223-e0ae-4d0d-9a0c-3ebddc1cf448)
 
+**Livros textos utilizados:**
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://github.com/user-attachments/assets/98b71b64-544a-47a5-8de8-b11dc885f8e3" width="200" alt="Capa Livro 1 - Computer Vision: Algorithms and Applications">
+        <br /> <!-- Opcional: adicionar legenda se quiser -->
+        <!-- <em>Computer Vision (Szeliski)</em> -->
+      </td>
+      <td align="center">
+        <img src="https://github.com/user-attachments/assets/18541c49-386d-4547-a531-5388026e3298" width="200" alt="Capa Livro 2 - Deep Learning for Vision Systems">
+        <br />
+        <!-- <em>Deep Learning for Vision</em> -->
+      </td>
+      <td align="center">
+        <img src="https://github.com/user-attachments/assets/d21e8223-e0ae-4d0d-9a0c-3ebddc1cf448" width="200" alt="Capa Livro 3 - Digital Image Processing (Gonzalez & Woods)">
+        <br />
+        <!-- <em>Processamento Digital de Imagens (Gonzalez)</em> -->
+      </td>
+    </tr>
+  </table>
+</div>
 
 ### Implementações e Códigos
 
