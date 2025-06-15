@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         self.setup_ui()
 
     def set_variables(self):
-        self.objeto_original = [] #modificar
+        self.objeto_original = ReturnObject()
         self.objeto = self.objeto_original
         self.cam_original = np.hstack((Base(),np.array([[0,0,0,1]]).T))#Câmera na origem
         self.cam = self.cam_original
@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self.ox = self.px_base/2 #modificar
         self.oy = self.px_altura/2 #modificar
         self.ccd = [36,24] #modificar
-        self.projection_matrix = [] #modificar
+        self.projection_matrix =  np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])#Matriz de projeção canônica
         self.sx = self.px_base/self.ccd[0]
         self.sy = self.px_altura/self.ccd[1]
 
@@ -230,8 +230,9 @@ class MainWindow(QMainWindow):
         self.canvas1 = FigureCanvas(self.fig1)
 
         ##### Falta acertar os limites do eixo X
-        
+        self.ax1.set_xlim([0,self.px_base])
         ##### Falta acertar os limites do eixo Y
+        self.ax1.set_ylim([self.px_altura,0])
         
         ##### Você deverá criar a função de projeção 
         object_2d = self.projection_2d()
@@ -320,12 +321,17 @@ class MainWindow(QMainWindow):
             dz = float(line_edits[4].text() or "0")
             angulo_z = float(line_edits[5].text() or "0")
 
+            #Conversão dos ângulos de graus para radiano
+            angulo_x = (pi/180)*angulo_x
+            angulo_y = (pi/180)*angulo_y
+            angulo_z = (pi/180)*angulo_z
+
             #A ordem que será aplicado é Rx,Ry,Rz e depois a matriz T
             rx = Rx(angulo_x)
             ry = Ry(angulo_y)
             rz = Rz(angulo_z)
             T=move(dx,dy,dz)
-            self.cam = T@rz@ry@rx
+            self.cam = T@rz@ry@rx@self.cam
 
             print(f"""
                 =========================================================
@@ -334,7 +340,7 @@ class MainWindow(QMainWindow):
                 Novos Parâmetros do Referencial do Mundo:
                 - Translação (dx, dy, dz): ({dx:.2f}, {dy:.2f}, {dz:.2f})
                 - Rotação (ax, ay, az):    ({angulo_x:.2f}, {angulo_y:.2f}, {angulo_z:.2f}) graus
-                - Câmera Atual:{self.cam}
+                - Câmera Atual:\n{self.cam}
                 =========================================================
             """)
 
@@ -394,18 +400,19 @@ class MainWindow(QMainWindow):
         args:
             self: Referência a classe.
         """
-        proj_canonica = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
+        proj_canonica =self.projection_matrix
         try:
-            self.projection_matrix = self.generate_intrinsic_params_matrix()@proj_canonica@np.linalg.inv(self.cam)@self.objeto
-            self.projection_matrix = self.projection_matrix/self.projection_matrix[2]
+            projecao_2d = self.generate_intrinsic_params_matrix()@proj_canonica@np.linalg.inv(self.cam)@self.objeto
+            projecao_2d = projecao_2d/projecao_2d[2]
             print(f"""
                 =========================================================
                 Valores ATUALIZADOS (Função: projection_2d)
                 =========================================================
                 Matriz de projeção 2d:
-                - Mp : {self.projection_matrix}
+                - Mp2d : {projecao_2d}
                 =========================================================
             """)
+            return projecao_2d
         except ValueError:
             print(f'Error ao gerar a matriz de projeção 2d de um ponto 3d no mundo para 2d na câmera.')
         return 
