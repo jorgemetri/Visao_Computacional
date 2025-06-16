@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QGridLayout, QLabel, QWid
 from PyQt5.QtGui import QDoubleValidator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
+#alteracao do gemini - importando numpy como np para consistencia
+import numpy as np
 from numpy import array
 from transformacoes import *
 
@@ -19,32 +21,39 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Grid Layout")
         self.setGeometry(100, 100,1280 , 720)
         self.setup_ui()
+        #alteracao do gemini - Atualiza a tela com o estado inicial
+        self.update_canvas()
+
 
     def set_variables(self):
         self.objeto_original = ReturnObject()
         self.objeto = self.objeto_original
-        self.cam_original = np.hstack((Base(),np.array([[0,0,0,1]]).T))#Câmera na origem
+        #alteracao do gemini - A câmera original (referencial do mundo)
+        self.world_frame = np.hstack((Base(),np.array([[0,0,0,1]]).T))
+        #alteracao do gemini - Posição inicial da câmera movida para trás para enxergar o objeto
+        self.cam_original = move(0, 0, 50)
         self.cam = self.cam_original
-        self.px_base = 1280  #modificar
-        self.px_altura = 720 #modificar
-        self.dist_foc = 50 #modificar
-        self.stheta = 0 #modificar
-        self.ox = self.px_base/2 #modificar
-        self.oy = self.px_altura/2 #modificar
-        self.ccd = [36,24] #modificar
-        self.projection_matrix =  np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])#Matriz de projeção canônica
+
+        self.px_base = 1280
+        self.px_altura = 720
+        self.dist_foc = 50 
+        self.stheta = 0 
+        self.ox = self.px_base/2
+        self.oy = self.px_altura/2
+        self.ccd = [36,24]
+        self.projection_matrix =  np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         self.sx = self.px_base/self.ccd[0]
         self.sy = self.px_altura/self.ccd[1]
 
         print(f"""
             ======================================================
-            Função: set_variables
+            Função: set_variables (RESET)
             ======================================================
             Parâmetros de Geometria:
-            - Objeto Original:     {self.objeto_original}
-            - Objeto Atual:        {self.objeto}
-            - Câmera Original:     {self.cam_original}
-            - Câmera Atual:        {self.cam}
+            - Objeto Original:     (Shape: {self.objeto_original.shape})
+            - Objeto Atual:        (Shape: {self.objeto.shape})
+            - Câmera Original:     \n{self.cam_original}
+            - Câmera Atual:        \n{self.cam}
 
             Parâmetros Intrínsecos da Câmera:
             - Resolução (w, h):    ({self.px_base}, {self.px_altura}) [px]
@@ -55,7 +64,7 @@ class MainWindow(QMainWindow):
             - Skew x,y (sx,sy): {self.sx:.2f},{self.sy:.2f} [px]/[mm]
 
             Matrizes:
-            - Matriz de Projeção:  {self.projection_matrix}
+            - Matriz de Projeção:  \n{self.projection_matrix}
             ======================================================
         """)
         
@@ -84,7 +93,7 @@ class MainWindow(QMainWindow):
 
         # Criar o botão de reset vermelho
         reset_button = QPushButton("Reset")
-        reset_button.setFixedSize(50, 30)  # Define um tamanho fixo para o botão (largura: 50 pixels, altura: 30 pixels)
+        reset_button.setFixedSize(50, 30)
         style_sheet = """
             QPushButton {
                 color : white ;
@@ -126,16 +135,15 @@ class MainWindow(QMainWindow):
         for i in range(1, 7):
             line_edit = QLineEdit()
             label = QLabel(labels[i-1])
-            validator = QDoubleValidator()  # Validador numérico
-            line_edit.setValidator(validator)  # Aplicar o validador ao QLineEdit
+            validator = QDoubleValidator()
+            line_edit.setValidator(validator)
             grid_layout.addWidget(label, (i-1)//2, 2*((i-1)%2))
             grid_layout.addWidget(line_edit, (i-1)//2, 2*((i-1)%2) + 1)
             line_edits.append(line_edit)
 
         # Criar o botão de atualização
         update_button = QPushButton("Atualizar")
-
-        ##### Você deverá criar, no espaço reservado ao final, a função self.update_params_intrinsc ou outra que você queira 
+        
         # Conectar a função de atualização aos sinais de clique do botão
         update_button.clicked.connect(lambda: self.update_params_intrinsc(line_edits))
 
@@ -143,7 +151,6 @@ class MainWindow(QMainWindow):
         line_edit_layout.addLayout(grid_layout)
         line_edit_layout.addWidget(update_button)
 
-        # Retornar o widget e a lista de caixas de texto
         return line_edit_widget
     
     def create_world_widget(self, title):
@@ -156,14 +163,14 @@ class MainWindow(QMainWindow):
         grid_layout = QGridLayout()
 
         line_edits = []
-        labels = ['X(move):', 'X(angle):', 'Y(move):', 'Y(angle):', 'Z(move):', 'Z(angle):']  # Texto a ser exibido antes de cada QLineEdit
+        labels = ['X(move):', 'X(angle):', 'Y(move):', 'Y(angle):', 'Z(move):', 'Z(angle):']
 
         # Adicionar widgets QLineEdit com caixa de texto ao layout de grade
         for i in range(1, 7):
             line_edit = QLineEdit()
             label = QLabel(labels[i-1])
-            validator = QDoubleValidator()  # Validador numérico
-            line_edit.setValidator(validator)  # Aplicar o validador ao QLineEdit
+            validator = QDoubleValidator()
+            line_edit.setValidator(validator)
             grid_layout.addWidget(label, (i-1)//2, 2*((i-1)%2))
             grid_layout.addWidget(line_edit, (i-1)//2, 2*((i-1)%2) + 1)
             line_edits.append(line_edit)
@@ -171,7 +178,6 @@ class MainWindow(QMainWindow):
         # Criar o botão de atualização
         update_button = QPushButton("Atualizar")
 
-        ##### Você deverá criar, no espaço reservado ao final, a função self.update_world ou outra que você queira 
         # Conectar a função de atualização aos sinais de clique do botão
         update_button.clicked.connect(lambda: self.update_world(line_edits))
 
@@ -179,7 +185,6 @@ class MainWindow(QMainWindow):
         line_edit_layout.addLayout(grid_layout)
         line_edit_layout.addWidget(update_button)
 
-        # Retornar o widget e a lista de caixas de texto
         return line_edit_widget
 
     def create_cam_widget(self, title):
@@ -192,14 +197,14 @@ class MainWindow(QMainWindow):
         grid_layout = QGridLayout()
 
         line_edits = []
-        labels = ['X(move):', 'X(angle):', 'Y(move):', 'Y(angle):', 'Z(move):', 'Z(angle):']  # Texto a ser exibido antes de cada QLineEdit
+        labels = ['X(move):', 'X(angle):', 'Y(move):', 'Y(angle):', 'Z(move):', 'Z(angle):']
 
         # Adicionar widgets QLineEdit com caixa de texto ao layout de grade
         for i in range(1, 7):
             line_edit = QLineEdit()
             label = QLabel(labels[i-1])
-            validator = QDoubleValidator()  # Validador numérico
-            line_edit.setValidator(validator)  # Aplicar o validador ao QLineEdit
+            validator = QDoubleValidator()
+            line_edit.setValidator(validator)
             grid_layout.addWidget(label, (i-1)//2, 2*((i-1)%2))
             grid_layout.addWidget(line_edit, (i-1)//2, 2*((i-1)%2) + 1)
             line_edits.append(line_edit)
@@ -207,7 +212,6 @@ class MainWindow(QMainWindow):
         # Criar o botão de atualização
         update_button = QPushButton("Atualizar")
 
-        ##### Você deverá criar, no espaço reservado ao final, a função self.update_cam ou outra que você queira 
         # Conectar a função de atualização aos sinais de clique do botão
         update_button.clicked.connect(lambda: self.update_cam(line_edits))
 
@@ -215,7 +219,6 @@ class MainWindow(QMainWindow):
         line_edit_layout.addLayout(grid_layout)
         line_edit_layout.addWidget(update_button)
 
-        # Retornar o widget e a lista de caixas de texto
         return line_edit_widget
 
     def create_matplotlib_canvas(self):
@@ -226,67 +229,48 @@ class MainWindow(QMainWindow):
 
         # Criar um objeto FigureCanvas para exibir o gráfico 2D
         self.fig1, self.ax1 = plt.subplots()
-        self.ax1.set_title("Imagem")
         self.canvas1 = FigureCanvas(self.fig1)
-
-        ##### Falta acertar os limites do eixo X
-        self.ax1.set_xlim([0,self.px_base])
-        ##### Falta acertar os limites do eixo Y
-        self.ax1.set_ylim([self.px_altura,0])
-        
-        ##### Você deverá criar a função de projeção 
-        object_2d = self.projection_2d()
-
-        ##### Falta plotar o object_2d que retornou da projeção
-          
-        self.ax1.grid('True')
-        self.ax1.set_aspect('equal')  
         canvas_layout.addWidget(self.canvas1)
 
         # Criar um objeto FigureCanvas para exibir o gráfico 3D
         self.fig2 = plt.figure()
         self.ax2 = self.fig2.add_subplot(111, projection='3d')
-        
-        ##### Falta plotar o seu objeto 3D e os referenciais da câmera e do mundo
-        
         self.canvas2 = FigureCanvas(self.fig2)
         canvas_layout.addWidget(self.canvas2)
 
-        # Retornar o widget de canvas
         return canvas_widget
-
 
     ##### Você deverá criar as suas funções aqui
     
     def update_params_intrinsc(self, line_edits):
         """
         Método Responsável para alterar os parâmetros intrísicos fornecido pelo usuario
-        args:
-            self: Referencia a classe.
-            line_edits: Lista com cada um dos QLineEdit(inputs do usuário) do widget params instr(Ex: n_pixels_base,n_pixels_altura...)
         """
         try:
-            #n_pixels_base ---------------------------------------------------------------------
-            n_pixels_base = line_edits[0].text()
-            if n_pixels_base:
-                self.px_base = float(n_pixels_base)         
-            #n_pixels_altura--------------------------------------------------------------------
-            n_pixel_altura = line_edits[1].text()
-            if n_pixel_altura:#Caso não seja vazio
-                self.px_altura = float(n_pixel_altura)
-            #ccd_x,ccd_y------------------------------------------------------------------------
-            ccd_x = line_edits[2].text()
-            ccd_y = line_edits[3].text()
-            if ccd_x and ccd_y:
-                self.ccd = [float(ccd_x),float(ccd_y)]
-            #dist_focal-------------------------------------------------------------------------
-            dist_focal = line_edits[4].text()
-            if dist_focal:
-                self.dist_foc = float(dist_focal)
-            #skew factor------------------------------------------------------------------------
-            skew_factor = line_edits[5].text()
-            if skew_factor:
-                self.stheta = skew_factor
+            px_base_text = line_edits[0].text()
+            if px_base_text: self.px_base = float(px_base_text)         
+            
+            px_altura_text = line_edits[1].text()
+            if px_altura_text: self.px_altura = float(px_altura_text)
+
+            ccd_x_text = line_edits[2].text()
+            if ccd_x_text: self.ccd[0] = float(ccd_x_text)
+
+            ccd_y_text = line_edits[3].text()
+            if ccd_y_text: self.ccd[1] = float(ccd_y_text)
+            
+            dist_focal_text = line_edits[4].text()
+            if dist_focal_text: self.dist_foc = float(dist_focal_text)
+            
+            skew_factor_text = line_edits[5].text()
+            if skew_factor_text: self.stheta = float(skew_factor_text)
+            
+            #alteracao do gemini - Recalcular parâmetros derivados
+            self.ox = self.px_base / 2
+            self.oy = self.px_altura / 2
+            self.sx = self.px_base / self.ccd[0]
+            self.sy = self.px_altura / self.ccd[1]
+                
             print(f"""
                 =========================================================
                 Função: update_params_intrinsc
@@ -296,24 +280,22 @@ class MainWindow(QMainWindow):
                 - Sensor CCD (x, y):   {self.ccd} mm
                 - Distância Focal:     {self.dist_foc}
                 - Skew (s_theta):      {self.stheta}
+                - Ponto Principal (ox, oy): ({self.ox}, {self.oy}) [px]
+                - Skew x,y (sx,sy): ({self.sx:.2f}, {self.sy:.2f}) [px/mm]
                 =========================================================
                 """)
-                
-                
             
-        except ValueError:
-            print(f"Error ao fornecer dados de usuário no widget Parâmetros Intrísicos:{ValueError}")
-        return 
+            #alteracao do gemini - Atualizar a visualização
+            self.update_canvas()
+
+        except ValueError as e:
+            print(f"Erro ao fornecer dados de usuário no widget Parâmetros Intrínsecos: {e}")
 
     def update_world(self,line_edits):
         """
-        Método responsável por atualizar os valores que foram digitados pelo usuáriuo no QlineEdit(Input) para as variáveis no ref do mundo.
-        args:
-            self: Referência a classe.
-            line_edits: Array com os QlineEdits.
+        Método responsável por atualizar a pose da câmera em relação ao referencial do MUNDO (pré-multiplicação).
         """
         try:
-            # Converte o texto para float. Se o campo estiver vazio, usa 0.0 como padrão.
             dx = float(line_edits[0].text() or "0")
             angulo_x = float(line_edits[1].text() or "0")
             dy = float(line_edits[2].text() or "0")
@@ -322,131 +304,169 @@ class MainWindow(QMainWindow):
             angulo_z = float(line_edits[5].text() or "0")
 
             #Conversão dos ângulos de graus para radiano
-            angulo_x = (pi/180)*angulo_x
-            angulo_y = (pi/180)*angulo_y
-            angulo_z = (pi/180)*angulo_z
+            angulo_x_rad = (pi/180)*angulo_x
+            angulo_y_rad = (pi/180)*angulo_y
+            angulo_z_rad = (pi/180)*angulo_z
 
-            #A ordem que será aplicado é Rx,Ry,Rz e depois a matriz T
-            rx = Rx(angulo_x)
-            ry = Ry(angulo_y)
-            rz = Rz(angulo_z)
-            T=move(dx,dy,dz)
-            self.cam = T@rz@ry@rx@self.cam
+            #A ordem que será aplicado é T, Rz, Ry, Rx no referencial do mundo
+            rx = Rx(angulo_x_rad)
+            ry = Ry(angulo_y_rad)
+            rz = Rz(angulo_z_rad)
+            T = move(dx,dy,dz)
+            
+            #alteracao do gemini - Pré-multiplicação para transformações no referencial do mundo
+            self.cam = T @ rz @ ry @ rx @ self.cam
 
             print(f"""
                 =========================================================
                 Valores ATUALIZADOS (Função: update_world)
                 =========================================================
-                Novos Parâmetros do Referencial do Mundo:
+                Transformação no referencial do MUNDO:
                 - Translação (dx, dy, dz): ({dx:.2f}, {dy:.2f}, {dz:.2f})
                 - Rotação (ax, ay, az):    ({angulo_x:.2f}, {angulo_y:.2f}, {angulo_z:.2f}) graus
                 - Câmera Atual:\n{self.cam}
                 =========================================================
             """)
+            
+            #alteracao do gemini - Atualizar a visualização
+            self.update_canvas()
 
-        except ValueError:
-            print(f"Error ao fornecer dados de usuário no widget para alterar os valores de Translação/Rotação do frame do Mundo: {ValueError}")
-        return
+        except ValueError as e:
+            print(f"Erro ao fornecer dados de usuário no widget do Mundo: {e}")
 
     def update_cam(self,line_edits):
         """
-        Método responsável por atualizar os valores que foram digitados pelo usuáriuo no QlineEdit(Input) para as variáveis no ref na câmera.
-        args:
-            self: Referência a classe.
-            line_edits: Array com os QlineEdits.
+        Método responsável por atualizar a pose da câmera em relação ao seu PRÓPRIO referencial (pós-multiplicação).
         """
         try:
-            # Converte o texto para float. Se o campo estiver vazio, usa 0.0 como padrão.
             dx = float(line_edits[0].text() or "0")
             angulo_x = float(line_edits[1].text() or "0")
             dy = float(line_edits[2].text() or "0")
             angulo_y = float(line_edits[3].text() or "0")
             dz = float(line_edits[4].text() or "0")
             angulo_z = float(line_edits[5].text() or "0")
+            
+            #alteracao do gemini - Conversão de graus para radianos
+            angulo_x_rad = (pi/180)*angulo_x
+            angulo_y_rad = (pi/180)*angulo_y
+            angulo_z_rad = (pi/180)*angulo_z
 
-            #A ordem que será aplicado é Rx,Ry,Rz e depois a matriz T-------------------------------
-            rx = Rx(angulo_x)
-            ry = Ry(angulo_y)
-            rz = Rz(angulo_z)
-            T=move(dx,dy,dz)
-            #Rotação Rx entorno da própria câmera
-            self.cam = self.cam@rx@self.cam_original
-            #Rotação Ry entorno da própria câmera
-            self.cam = self.cam@ry@self.cam_original
-            #Rotação Rz entorno da própria câmera
-            self.cam = self.cam@rz@self.cam_original
-            #Translação entorno da câmera
-            self.cam = self.cam@T@self.cam_original
+            #alteracao do gemini - Cria as matrizes de transformação local
+            rx = Rx(angulo_x_rad)
+            ry = Ry(angulo_y_rad)
+            rz = Rz(angulo_z_rad)
+            T = move(dx,dy,dz)
+
+            #alteracao do gemini - Pós-multiplicação para transformações no referencial da câmera
+            # A ordem (T @ rz @ ry @ rx) define a sequência de operações locais
+            transformacao_local = T @ rz @ ry @ rx
+            self.cam = self.cam @ transformacao_local
 
             print(f"""
                 =========================================================
                 Valores ATUALIZADOS (Função: update_cam)
                 =========================================================
-                Novos Parâmetros do Referencial da Câmera:
+                Transformação no referencial da CÂMERA:
                 - Translação (dx, dy, dz): ({dx:.2f}, {dy:.2f}, {dz:.2f})
                 - Rotação (ax, ay, az):    ({angulo_x:.2f}, {angulo_y:.2f}, {angulo_z:.2f}) graus
-                - Câmera Atual:{self.cam}
+                - Câmera Atual:\n{self.cam}
                 =========================================================
             """)
+            
+            #alteracao do gemini - Atualizar a visualização
+            self.update_canvas()
 
-        except ValueError:
-            print(f"Error ao fornecer dados de usuário no widget para alterar os valores de Translação/Rotação do frame do Mundo: {ValueError}")
+        except ValueError as e:
+            print(f"Erro ao fornecer dados de usuário no widget da Câmera: {e}")
 
-        return 
-    
     def projection_2d(self):
         """
         Método que faz a projeção de um ponto 'p' no R^3 no R^2.
-        args:
-            self: Referência a classe.
         """
-        proj_canonica =self.projection_matrix
-        try:
-            projecao_2d = self.generate_intrinsic_params_matrix()@proj_canonica@np.linalg.inv(self.cam)@self.objeto
-            projecao_2d = projecao_2d/projecao_2d[2]
-            print(f"""
-                =========================================================
-                Valores ATUALIZADOS (Função: projection_2d)
-                =========================================================
-                Matriz de projeção 2d:
-                - Mp2d : {projecao_2d}
-                =========================================================
-            """)
-            return projecao_2d
-        except ValueError:
-            print(f'Error ao gerar a matriz de projeção 2d de um ponto 3d no mundo para 2d na câmera.')
-        return 
+        k = self.generate_intrinsic_params_matrix()
+        # Matriz de transformação do mundo para a câmera
+        T_cam_inv = np.linalg.inv(self.cam)
+        
+        # Projeção: K * [I|0] * T_cam_inv * P_mundo
+        projecao_2d = k @ self.projection_matrix @ T_cam_inv @ self.objeto
+        
+        # Divisão perspectiva (ignora pontos com z_cam <= 0 para evitar divisão por zero/negativo)
+        z_cam = projecao_2d[2,:]
+        #alteracao do gemini - Adicionado um valor pequeno para evitar divisão por zero
+        z_cam[z_cam == 0] = 1e-6 
+        
+        projecao_2d = projecao_2d / z_cam
+        
+        return projecao_2d
     
     def generate_intrinsic_params_matrix(self):
         """
         Método responsável por gerar a matriz de parâmetros intrísicos da câmera.
-        args:
-            self: Referência a classe.
         """
-        k = np.array([[self.dist_foc*self.sx,self.dist_foc*self.stheta,self.ox],
-                         [0, self.dist_foc*self.sy,self.oy],
-                         [0,0,1]
-                         ])
-        print(f"""
-                =========================================================
-                Valores ATUALIZADOS (Função: generate_intrinsic_params_matrix)
-                =========================================================
-                Matriz de parâmetros intrísicos:
-                - K : {k}
-                =========================================================
-            """)
-        return  k
+        k = np.array([
+            [self.dist_foc * self.sx, self.dist_foc * self.stheta, self.ox],
+            [0, self.dist_foc * self.sy, self.oy],
+            [0, 0, 1]
+        ])
+        return k
     
-        
-    
-
+    #alteracao do gemini - Função para redesenhar os gráficos
     def update_canvas(self):
-        return 
+        """
+        Limpa e redesenha ambos os gráficos (2D e 3D) com os valores atuais.
+        """
+        # Limpa os eixos
+        self.ax1.cla()
+        self.ax2.cla()
+
+        # --- Gráfico 2D (Imagem) ---
+        self.ax1.set_title("Imagem 2D Projetada")
+        self.ax1.set_xlabel("x (pixels)")
+        self.ax1.set_ylabel("y (pixels)")
+        self.ax1.set_xlim([0, self.px_base])
+        self.ax1.set_ylim([self.px_altura, 0]) # Eixo Y invertido para imagem
+        self.ax1.set_aspect('equal', adjustable='box')
+        self.ax1.grid(True)
+        
+        object_2d = self.projection_2d()
+        self.ax1.plot(object_2d[0, :], object_2d[1, :], 'b.-')
+        
+        # --- Gráfico 3D (Mundo) ---
+        self.ax2.set_title("Cena 3D")
+        self.ax2.set_xlabel("X")
+        self.ax2.set_ylabel("Y")
+        self.ax2.set_zlabel("Z")
+        lims = [-30, 60]
+        self.ax2.set_xlim(lims)
+        self.ax2.set_ylim(lims)
+        self.ax2.set_zlim(lims)
+        self.ax2.set_aspect('equal')
+
+        # Desenha o referencial do Mundo (em (0,0,0))
+        draw_arrows(self.world_frame[:, -1], self.world_frame[:, 0:-1], self.ax2, length=5)
+        
+        # Desenha o referencial da Câmera (na sua pose atual)
+        draw_arrows(self.cam[:, -1], self.cam[:, 0:-1], self.ax2, length=10)
+
+        # Desenha o objeto 3D
+        self.ax2.plot(self.objeto[0,:], self.objeto[1,:], self.objeto[2,:], 'g-')
+
+        # Redesenha os canvas
+        self.canvas1.draw()
+        self.canvas2.draw()
     
+    #alteracao do gemini - Função para o botão de reset
     def reset_canvas(self):
-        return
-    
+        """
+        Reseta todas as variáveis e parâmetros para seus valores iniciais e atualiza a tela.
+        """
+        print("\n--- RESETANDO APLICAÇÃO ---")
+        self.set_variables()
+        self.update_canvas()
+
 if __name__ == '__main__':
+    #alteracao do gemini - Importando 'pi' diretamente no escopo principal para 'transformacoes'
+    from math import pi
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
