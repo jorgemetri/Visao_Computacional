@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QGridLayout, QLabel, QWid
 from PyQt5.QtGui import QDoubleValidator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
-#alteracao do gemini - importando numpy como np para consistencia
 import numpy as np
 from numpy import array
 from transformacoes import *
@@ -21,17 +20,18 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Grid Layout")
         self.setGeometry(100, 100,1280 , 720)
         self.setup_ui()
-        #alteracao do gemini - Atualiza a tela com o estado inicial
+        #Atualiza a tela com o estado inicial
         self.update_canvas()
 
 
     def set_variables(self):
         self.objeto_original = ReturnObject()
         self.objeto = self.objeto_original
-        #alteracao do gemini - A câmera original (referencial do mundo)
+        #A câmera original (referencial do mundo)
         self.world_frame = np.hstack((Base(),np.array([[0,0,0,1]]).T))
-        #alteracao do gemini - Posição inicial da câmera movida para trás para enxergar o objeto
-        self.cam_original = move(0, 0, 50)
+        #Posição inicial da câmera movida para trás para enxergar o objeto
+        #self.cam_original = move(0, 0, 50)
+        self.cam_original = move(20,-5,6)@Rz(pi/2)@Rx(-pi/2)
         self.cam = self.cam_original
 
         self.px_base = 1280
@@ -265,7 +265,7 @@ class MainWindow(QMainWindow):
             skew_factor_text = line_edits[5].text()
             if skew_factor_text: self.stheta = float(skew_factor_text)
             
-            #alteracao do gemini - Recalcular parâmetros derivados
+            #Recalcular parâmetros derivados
             self.ox = self.px_base / 2
             self.oy = self.px_altura / 2
             self.sx = self.px_base / self.ccd[0]
@@ -285,7 +285,7 @@ class MainWindow(QMainWindow):
                 =========================================================
                 """)
             
-            #alteracao do gemini - Atualizar a visualização
+            #- Atualizar a visualização
             self.update_canvas()
 
         except ValueError as e:
@@ -314,7 +314,7 @@ class MainWindow(QMainWindow):
             rz = Rz(angulo_z_rad)
             T = move(dx,dy,dz)
             
-            #alteracao do gemini - Pré-multiplicação para transformações no referencial do mundo
+            #Pré-multiplicação para transformações no referencial do mundo
             self.cam = T @ rz @ ry @ rx @ self.cam
 
             print(f"""
@@ -328,7 +328,7 @@ class MainWindow(QMainWindow):
                 =========================================================
             """)
             
-            #alteracao do gemini - Atualizar a visualização
+            #Atualizar a visualização
             self.update_canvas()
 
         except ValueError as e:
@@ -346,18 +346,18 @@ class MainWindow(QMainWindow):
             dz = float(line_edits[4].text() or "0")
             angulo_z = float(line_edits[5].text() or "0")
             
-            #alteracao do gemini - Conversão de graus para radianos
+            #Conversão de graus para radianos
             angulo_x_rad = (pi/180)*angulo_x
             angulo_y_rad = (pi/180)*angulo_y
             angulo_z_rad = (pi/180)*angulo_z
 
-            #alteracao do gemini - Cria as matrizes de transformação local
+            #Cria as matrizes de transformação local
             rx = Rx(angulo_x_rad)
             ry = Ry(angulo_y_rad)
             rz = Rz(angulo_z_rad)
             T = move(dx,dy,dz)
 
-            #alteracao do gemini - Pós-multiplicação para transformações no referencial da câmera
+            #Pós-multiplicação para transformações no referencial da câmera
             # A ordem (T @ rz @ ry @ rx) define a sequência de operações locais
             transformacao_local = T @ rz @ ry @ rx
             self.cam = self.cam @ transformacao_local
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
                 =========================================================
             """)
             
-            #alteracao do gemini - Atualizar a visualização
+            #Atualizar a visualização
             self.update_canvas()
 
         except ValueError as e:
@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
         
         # Divisão perspectiva (ignora pontos com z_cam <= 0 para evitar divisão por zero/negativo)
         z_cam = projecao_2d[2,:]
-        #alteracao do gemini - Adicionado um valor pequeno para evitar divisão por zero
+        #Adicionado um valor pequeno para evitar divisão por zero
         z_cam[z_cam == 0] = 1e-6 
         
         projecao_2d = projecao_2d / z_cam
@@ -410,7 +410,7 @@ class MainWindow(QMainWindow):
         ])
         return k
     
-    #alteracao do gemini - Função para redesenhar os gráficos
+    #Função para redesenhar os gráficos
     def update_canvas(self):
         """
         Limpa e redesenha ambos os gráficos (2D e 3D) com os valores atuais.
@@ -455,7 +455,7 @@ class MainWindow(QMainWindow):
         self.canvas1.draw()
         self.canvas2.draw()
     
-    #alteracao do gemini - Função para o botão de reset
+    #Função para o botão de reset
     def reset_canvas(self):
         """
         Reseta todas as variáveis e parâmetros para seus valores iniciais e atualiza a tela.
@@ -465,7 +465,6 @@ class MainWindow(QMainWindow):
         self.update_canvas()
 
 if __name__ == '__main__':
-    #alteracao do gemini - Importando 'pi' diretamente no escopo principal para 'transformacoes'
     from math import pi
     app = QApplication(sys.argv)
     main_window = MainWindow()
