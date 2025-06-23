@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
 
 
     def set_variables(self):
-        self.objeto_original = ReturnObject()
+        self.objeto_original = ReturnObject1()
         self.objeto = self.objeto_original
         #A câmera original (referencial do mundo)
         self.world_frame = np.hstack((Base(),np.array([[0,0,0,1]]).T))
