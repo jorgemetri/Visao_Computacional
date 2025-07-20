@@ -232,7 +232,7 @@ if len(good) > MIN_MATCH_COUNT:
     dst_pts_reshaped = dst_pts.reshape(-1, 2)
     #################################################################################
     
-    M, pts1_in, pts2_in = RANSAC(src_pts_reshaped, dst_pts_reshaped, dis_threshold=7.5)# AQUI ENTRA A SUA FUNÇÃO DE HOMOGRAFIA!!!!
+    M, pts1_in, pts2_in = RANSAC(src_pts_reshaped, dst_pts_reshaped, dis_threshold=9)# AQUI ENTRA A SUA FUNÇÃO DE HOMOGRAFIA!!!!
     #####################################################################################
     # Chamada da função de homografia do OpenCV para comparação
     M_cv, mask_cv = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
